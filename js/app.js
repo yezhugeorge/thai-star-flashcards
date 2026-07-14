@@ -1,11 +1,12 @@
 /**
- * 活人泰语点读卡 · 追星专版 - 应用逻辑
- * 激活码验证 / SPA路由 / 句子卡片 / 对话组件 / 搜索 / 收藏 / 音频播放
+ * 饭泰 FANTHA - 追星泰语点读卡 - 应用逻辑
+ * 激活码验证 / SPA三级路由 / 句子卡片 / 对话组件 / 搜索 / 收藏 / 音频播放
  */
 (function () {
   'use strict';
 
   var DATA = window.APP_DATA || {};
+  var SECTIONS = DATA.SECTIONS || [];
   var CATEGORIES = DATA.CATEGORIES || [];
   var SUBCATS = DATA.SUBCATS || {};
   var SENTENCES = DATA.SENTENCES || [];
@@ -465,7 +466,7 @@
     state.sub = null;
     document.getElementById('search-bar').style.display = 'none';
     document.getElementById('back-btn').style.display = 'none';
-    document.getElementById('page-title').textContent = '活人泰语 · 追星专版';
+    document.getElementById('page-title').textContent = '饭泰 FANTHA';
     renderHome();
     window.scrollTo(0, 0);
   }
@@ -503,61 +504,132 @@
   /* ===== 首页 ===== */
   function renderHome() {
     var content = document.getElementById('content');
-    var html =
-      '<div class="home-header">' +
-      '<div class="home-header__title">🇹🇭 泰国追星泰语</div>' +
-      '<div class="home-header__desc">点一下就能听 · BL/GL/追星/演唱会/社交/线下</div>' +
-      '</div><div class="cat-grid">';
+    var totalS = SENTENCES.length;
+    var totalD = DIALOGUES.length;
 
-    CATEGORIES.forEach(function (cat) {
-      var sc = SENTENCES.filter(function (s) { return s.cat === cat.id; }).length;
-      var dc = DIALOGUES.filter(function (d) { return d.cat === cat.id; }).length;
+    var html =
+      '<div class="home-hero">' +
+      '<div class="home-hero__badge">💜 追星泰语点读卡</div>' +
+      '<div class="home-hero__title">饭泰 FANTHA</div>' +
+      '<div class="home-hero__desc">点一下就能听 · 追星泰语利器</div>' +
+      '<div class="home-hero__stats">' +
+      '<div class="home-hero__stat"><div class="home-hero__stat-num">' + totalS + '</div><div class="home-hero__stat-label">实用句子</div></div>' +
+      '<div class="home-hero__stat"><div class="home-hero__stat-num">' + totalD + '</div><div class="home-hero__stat-label">对话场景</div></div>' +
+      '<div class="home-hero__stat"><div class="home-hero__stat-num">6</div><div class="home-hero__stat-label">大模块</div></div>' +
+      '</div></div>';
+
+    // 按专区分组渲染
+    SECTIONS.forEach(function (sec) {
       html +=
-        '<div class="cat-card" onclick="goToCategory(\'' + cat.id + '\')">' +
-        '<div class="cat-card__icon">' + cat.icon + '</div>' +
-        '<div class="cat-card__name">' + cat.name + '</div>' +
-        '<div class="cat-card__desc">' + cat.desc + '</div>' +
-        '<div class="cat-card__count">📝 ' + sc + '句 · 💬 ' + dc + '对话</div>' +
-        '</div>';
+        '<div class="section-group">' +
+        '<div class="section-group__header">' +
+        '<div class="section-group__line"></div>' +
+        '<div class="section-group__icon">' + sec.icon + '</div>' +
+        '<div class="section-group__info">' +
+        '<div class="section-group__name">' + sec.name + '</div>' +
+        '<div class="section-group__desc">' + sec.desc + '</div>' +
+        '</div></div><div class="cat-grid">';
+
+      sec.cats.forEach(function (catId) {
+        var cat = CATEGORIES.find(function (c) { return c.id === catId; });
+        if (!cat) return;
+        var sc = SENTENCES.filter(function (s) { return s.cat === catId; }).length;
+        var dc = DIALOGUES.filter(function (d) { return d.cat === catId; }).length;
+        html +=
+          '<div class="cat-card" onclick="goToCategory(\'' + cat.id + '\')">' +
+          '<div class="cat-card__icon">' + cat.icon + '</div>' +
+          '<div class="cat-card__name">' + cat.name + '</div>' +
+          '<div class="cat-card__desc">' + cat.desc + '</div>' +
+          '<div class="cat-card__count">📝 ' + sc + '句 · 💬 ' + dc + '对话</div>' +
+          '</div>';
+      });
+
+      html += '</div></div>';
     });
-    html += '</div>';
+
     content.innerHTML = html;
   }
 
-  /* ===== 分类页 ===== */
+  /* ===== 分类页（第二级）===== */
   function renderCategoryPage(catId) {
     var subcats = SUBCATS[catId] || [];
     var content = document.getElementById('content');
 
-    // Sub tabs
-    var html = '<div class="sub-tabs">';
+    // 子分类卡片网格
+    var html = '<div class="subcat-grid">';
+    html +=
+      '<div class="subcat-card ' + (!state.sub ? 'active' : '') + '" onclick="selectSub(\'' + catId + '\',null)">' +
+      '<div class="subcat-card__icon">📋</div>' +
+      '<div class="subcat-card__name">全部</div>' +
+      '<div class="subcat-card__count">' + SENTENCES.filter(function(s){return s.cat===catId;}).length + '句</div>' +
+      '</div>';
+
+    subcats.forEach(function (sub) {
+      var sc = SENTENCES.filter(function (s) { return s.sub === sub.id; }).length;
+      var active = state.sub === sub.id ? 'active' : '';
+      html +=
+        '<div class="subcat-card ' + active + '" onclick="selectSub(\'' + catId + '\',\'' + sub.id + '\')">' +
+        '<div class="subcat-card__icon">' + getSubIcon(sub.id) + '</div>' +
+        '<div class="subcat-card__name">' + sub.name + '</div>' +
+        '<div class="subcat-card__count">' + sc + '句</div>' +
+        '</div>';
+    });
+    html += '</div>';
+
+    // 子分类快捷标签（横向滚动）
+    html += '<div class="sub-tabs">';
     html += '<span class="sub-tab ' + (!state.sub ? 'active' : '') + '" onclick="selectSub(\'' + catId + '\',null)">全部</span>';
     subcats.forEach(function (sub) {
       html += '<span class="sub-tab ' + (state.sub === sub.id ? 'active' : '') + '" onclick="selectSub(\'' + catId + '\',\'' + sub.id + '\')">' + sub.name + '</span>';
     });
     html += '</div>';
 
-    // Sentences
+    // 句子
     var sentences = SENTENCES.filter(function (s) { return s.cat === catId; });
     if (state.sub) sentences = sentences.filter(function (s) { return s.sub === state.sub; });
 
     if (sentences.length > 0) {
-      html += '<div class="section-header">📝 实用句子 (' + sentences.length + ')</div>';
+      var subName = '';
+      if (state.sub) {
+        var sn = subcats.find(function(s){return s.id===state.sub;});
+        subName = sn ? ' · ' + sn.name : '';
+      }
+      html += '<div class="section-header">📝 实用句子' + subName + ' (' + sentences.length + ')</div>';
       html += sentences.map(renderSentenceCard).join('');
     }
 
-    // Dialogues (only show when "全部" is selected)
+    // 对话场景（全部模式下显示）
     var dialogues = DIALOGUES.filter(function (d) { return d.cat === catId; });
     if (dialogues.length > 0 && !state.sub) {
       html += '<div class="section-header">💬 对话场景 (' + dialogues.length + ')</div>';
       html += dialogues.map(renderDialogueCard).join('');
     }
 
-    if (sentences.length === 0 && (state.sub && dialogues.length === 0)) {
+    // 对话场景（子分类模式下也显示该分类的对话）
+    if (dialogues.length > 0 && state.sub) {
+      html += '<div class="section-header">💬 对话场景 (' + dialogues.length + ')</div>';
+      html += dialogues.map(renderDialogueCard).join('');
+    }
+
+    if (sentences.length === 0 && dialogues.length === 0) {
       html += '<div class="fav-empty"><div class="fav-empty__icon">📝</div><p>该分类暂无内容</p></div>';
     }
 
     content.innerHTML = html;
+  }
+
+  /* 子分类图标映射 */
+  function getSubIcon(subId) {
+    var icons = {
+      'bl-cp':'💑','bl-plot':'🎬','bl-char':'🎭',
+      'bl-culture':'🌈','bl-emotion':'😍','bl-behind':'🎥',
+      'gl-cp':'💕','gl-plot':'🎬','gl-exclusive':'🌸','gl-char':'🎭','gl-emotion':'💗','gl-rec':'📌',
+      'star-praise':'🗣️','star-cheer':'📣','star-airport':'✈️','star-sign':'✍️','star-meet':'🤝','star-gift':'🎁',
+      'concert-ticket':'🎫','concert-venue':'🏟️','concert-cheer':'🎤','concert-chart':'📊','concert-merch':'🛍️','concert-help':'🆘',
+      'social-twitter':'🐦','social-ig':'📷','social-tiktok':'🎵','social-slang':'💬','social-live':'🔴','social-vote':'📈',
+      'offline-pilgrim':'📍','offline-merch':'🛒','offline-wreath':'💐','offline-fanclub':'👥','offline-audition':'🏆','offline-emergency':'🚨'
+    };
+    return icons[subId] || '📌';
   }
 
   /* ===== 句子卡片 ===== */

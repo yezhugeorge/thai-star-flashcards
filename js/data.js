@@ -1,5 +1,10 @@
-/* 活人泰语点读卡 · 追星专版 - 数据文件 */
+/* 饭泰 FANTHA - 追星泰语点读卡 - 数据文件 */
 window.APP_DATA = {
+  SECTIONS: [
+    { id: 'drama', name: '追剧专区', icon: '📺', desc: 'BL腐剧 · GL百合 · 磕糖必备', cats: ['bl', 'gl'] },
+    { id: 'live', name: '追星现场', icon: '🎤', desc: '应援打call · 演唱会 · 签售见面', cats: ['star', 'concert'] },
+    { id: 'daily', name: '粉丝日常', icon: '🌐', desc: '社交媒体 · 线下实用 · 饭圈生存', cats: ['social', 'offline'] },
+  ],
   CATEGORIES: [
     { id: 'bl', name: 'BL腐剧', icon: '💜', desc: '磕CP · 剧情 · 人设 · CP文化' },
     { id: 'gl', name: 'GL百合', icon: '💗', desc: '百合CP · 剧情 · 专属表达' },
