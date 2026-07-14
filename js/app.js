@@ -290,18 +290,33 @@
   }
 
   /* ===== 性别 / 速度 ===== */
+  function getGenderText(text) {
+    if (state.gender !== 'male') return text;
+    var t = text;
+    t = t.replace(/นะคะ/g, 'นะครับ');
+    t = t.replace(/ค่ะ/g, 'ครับ');
+    t = t.replace(/คะ(?=[\s,。.!？?]|$)/g, 'ครับ');
+    return t;
+  }
+
+  function hasGenderParticle(text) {
+    return /ค่ะ|คะ/.test(text);
+  }
+
   function setVoiceGender(g) {
     stopAudio();
     stopDialoguePlay();
     state.gender = g;
     localStorage.setItem('thai_star_gender', g);
-    showToast(g === 'male' ? '👨 已切换男声' : '👩 已切换女声');
+    showToast(g === 'male' ? '👨 已切换男声（句尾词自动变为ครับ）' : '👩 已切换女声');
     document.querySelectorAll('.gender-bar__btn').forEach(function (btn) {
       btn.classList.toggle('active', btn.dataset.gender === g);
     });
     document.querySelectorAll('.speed-tab[data-gender]').forEach(function (btn) {
       btn.classList.toggle('active', btn.dataset.gender === g);
     });
+    // 重新渲染当前页面，让句尾词随性别更新
+    if (state.route === 'category') renderCategoryPage(state.cat);
   }
 
   function setPlaybackSpeed(s) {
@@ -791,14 +806,17 @@
     var turnsHtml = d.turns.map(function (turn, i) {
       var audioId = d.id + '-' + i;
       var playing = state.playingId === audioId ? 'playing' : '';
+      var displayText = getGenderText(turn.t);
+      var genderBadge = hasGenderParticle(turn.t) ? '<span class="dialogue-turn__gender">👩ค่ะ↔👨ครับ</span>' : '';
       var romanHtml = turn.roman ? '<div style="font-size:12px;color:var(--purple);font-style:italic;margin-bottom:1px">' + turn.roman + '</div>' : '';
       var zhuyinHtml = turn.zhuyin ? '<div style="font-size:11px;color:#e91e63;opacity:.8;margin-bottom:1px">近似：' + turn.zhuyin + '</div>' : '';
       return '<div class="dialogue-turn">' +
         '<div class="dialogue-turn__speaker">' + turn.s + '</div>' +
         '<div class="dialogue-turn__content">' +
-        '<div class="dialogue-turn__thai">' + turn.t + '</div>' +
+        '<div class="dialogue-turn__thai">' + displayText + '</div>' +
         romanHtml + zhuyinHtml +
         '<div class="dialogue-turn__cn">' + turn.c + '</div>' +
+        genderBadge +
         '</div>' +
         '<button class="dialogue-turn__play ' + playing + '" data-play="' + audioId + '" onclick="playTurn(\'' + d.id + '\',' + i + ')">' + (playing ? '⏸' : '▶') + '</button>' +
         '</div>';
