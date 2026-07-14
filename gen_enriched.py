@@ -2,8 +2,11 @@
 """
 饭泰 FANTHA - 富数据生成脚本
 为每句泰语生成：罗马音、中文谐音、词语拆解、使用场合、小贴士、变体例句
+v2: 使用 pythainlp 专业分词 + 补充词典
 """
 import re, json, hashlib
+from pythainlp.tokenize import word_tokenize
+from extra_dict import EXTRA_DICT
 
 # ============================================================
 # 泰语词典 (word → [roman, zhuyin, meaning])
@@ -910,35 +913,23 @@ TIPS_TEMPLATES = {
 }
 
 # ============================================================
-# 泰语分词 (最长匹配)
+# 合并补充词典
+# ============================================================
+THAI_DICT.update(EXTRA_DICT)
+
+# ============================================================
+# 泰语分词 (使用 pythainlp 专业分词库)
 # ============================================================
 def segment_thai(text):
-    """用最长匹配算法分词"""
-    words = []
-    i = 0
-    while i < len(text):
-        matched = False
-        # 尝试从最长到最短匹配
-        for length in range(min(20, len(text) - i), 0, -1):
-            chunk = text[i:i+length]
-            # 跳过空格和标点
-            if chunk in (' ', '\t', '\n', '.', ',', '!', '?', 'ๆ', '~', '-'):
-                if chunk == ' ':
-                    pass  # 跳过空格
-                i += length
-                matched = True
-                break
-            if chunk in THAI_DICT:
-                words.append(chunk)
-                i += length
-                matched = True
-                break
-        if not matched:
-            # 单字符作为未知词
-            if text[i] not in (' ', '\t', '\n', '.', ',', '!', '?', 'ๆ', '~', '-'):
-                words.append(text[i])
-            i += 1
-    return words
+    """用 pythainlp 的 newmm 算法分词"""
+    words = word_tokenize(text, engine='newmm')
+    # 过滤空格和标点
+    result = []
+    for w in words:
+        w = w.strip()
+        if w and w not in (' ', '\t', '\n', '.', ',', '!', '?', 'ๆ', '~', '-', '–', '"', "'", '(', ')', ':', ';'):
+            result.append(w)
+    return result
 
 # ============================================================
 # 生成罗马音和中文谐音
@@ -952,8 +943,9 @@ def gen_phonetic(text):
             roman_parts.append(THAI_DICT[w][0])
             zhuyin_parts.append(THAI_DICT[w][1])
         else:
-            # 未知字符，跳过
-            pass
+            # 未知词，保留泰语原文
+            roman_parts.append(w)
+            zhuyin_parts.append(w)
     roman = ' '.join(roman_parts)
     zhuyin = ' '.join(zhuyin_parts)
     return roman, zhuyin
@@ -968,7 +960,8 @@ def gen_breakdown(text):
         if w in THAI_DICT:
             breakdown.append({'w': w, 'm': THAI_DICT[w][2]})
         else:
-            breakdown.append({'w': w, 'm': '?'})
+            # 未知词，标注泰语原文而非问号
+            breakdown.append({'w': w, 'm': '（泰语词）'})
     return breakdown
 
 # ============================================================
