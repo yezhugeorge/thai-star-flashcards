@@ -11,6 +11,8 @@
   var SUBCATS = DATA.SUBCATS || {};
   var SENTENCES = DATA.SENTENCES || [];
   var DIALOGUES = DATA.DIALOGUES || [];
+  var BREAKDOWN = DATA.BREAKDOWN || {};
+  var VARIATIONS = DATA.VARIATIONS || {};
 
   /* ===== Toast ===== */
   var toastEl = null, toastTimer = null;
@@ -312,15 +314,50 @@
     var s = SENTENCES.find(function (x) { return x.id === id; });
     if (!s) return;
     var playing = state.playingId === id;
+    var bd = BREAKDOWN[id] || [];
+    var bdHtml = '';
+    if (bd.length > 0) {
+      bdHtml = '<div style="margin:16px 0;padding:12px;background:rgba(196,79,231,.06);border-radius:12px;text-align:left">' +
+        '<div style="font-size:12px;font-weight:600;color:var(--purple);margin-bottom:8px">📖 词语拆解</div>' +
+        bd.map(function (b) {
+          return '<div style="font-size:14px;margin-bottom:4px"><b>' + b.w + '</b> <span style="color:var(--sub)">= ' + b.m + '</span></div>';
+        }).join('') + '</div>';
+    }
+    var vr = VARIATIONS[id] || [];
+    var vrHtml = '';
+    if (vr.length > 0) {
+      vrHtml = '<div style="margin-top:12px;text-align:left">' +
+        '<div style="font-size:12px;font-weight:600;color:var(--purple);margin-bottom:6px">🔄 举一反三</div>' +
+        vr.map(function (v) {
+          return '<div style="font-size:14px;margin-bottom:4px;padding:6px 10px;background:rgba(255,107,157,.08);border-radius:8px">' +
+            '<b>' + v.t + '</b> <span style="color:var(--sub)">' + v.c + '</span></div>';
+        }).join('') + '</div>';
+    }
     var overlay = document.getElementById('largecard-overlay');
     var body = document.getElementById('largecard-content');
     body.innerHTML =
       '<button class="largecard__close" onclick="closeLargeCard()">✕</button>' +
       '<div class="largecard__thai">' + s.thai + '</div>' +
+      (s.roman ? '<div style="font-size:18px;color:var(--purple);font-style:italic;margin-bottom:8px">' + s.roman + '</div>' : '') +
+      (s.zhuyin ? '<div style="font-size:15px;color:#e91e63;margin-bottom:8px;opacity:.85">近似发音：' + s.zhuyin + '</div>' : '') +
       '<div class="largecard__cn">' + s.cn + '</div>' +
+      bdHtml + vrHtml +
       '<button class="largecard__play ' + (playing ? 'playing' : '') + '" onclick="playAudio(\'' + id + '\')">' + (playing ? '⏸' : '▶') + '</button>';
     overlay.style.display = 'flex';
     document.body.style.overflow = 'hidden';
+  }
+
+  /* ===== 详解展开/折叠 ===== */
+  function toggleDetail(id) {
+    var bd = document.getElementById('bd-' + id);
+    var meta = document.getElementById('meta-' + id);
+    var vr = document.getElementById('vr-' + id);
+    var btn = document.querySelector('[onclick="toggleDetail(\'' + id + '\')"]');
+    var anyOpen = false;
+    if (bd) { bd.classList.toggle('show'); if (bd.classList.contains('show')) anyOpen = true; }
+    if (meta) { meta.classList.toggle('show'); if (meta.classList.contains('show')) anyOpen = true; }
+    if (vr) { vr.classList.toggle('show'); if (vr.classList.contains('show')) anyOpen = true; }
+    if (btn) { btn.textContent = anyOpen ? '📖 收起' : '📖 详解'; }
   }
   function closeLargeCard() {
     document.getElementById('largecard-overlay').style.display = 'none';
@@ -637,13 +674,62 @@
     var playing = state.playingId === s.id ? 'playing' : '';
     var favActive = isFav(s.id) ? 'active' : '';
     var favIcon = isFav(s.id) ? '⭐' : '☆';
+    var playIcon = playing ? '⏸' : '▶';
+
+    // 词语拆解
+    var bd = BREAKDOWN[s.id] || [];
+    var bdHtml = '';
+    if (bd.length > 0) {
+      bdHtml = '<div class="sentence-card__breakdown" id="bd-' + s.id + '">' +
+        '<div class="sentence-card__breakdown-title">📖 词语拆解</div>' +
+        '<div class="sentence-card__breakdown-items">' +
+        bd.map(function (b) {
+          return '<span class="sentence-card__breakdown-item">' +
+            '<span class="sentence-card__breakdown-word">' + b.w + '</span>' +
+            '<span class="sentence-card__breakdown-mean">' + b.m + '</span></span>';
+        }).join('') +
+        '</div></div>';
+    }
+
+    // 使用场合 + 小贴士
+    var metaHtml = '';
+    if (s.occasion) {
+      metaHtml += '<div class="sentence-card__meta-item">' +
+        '<div class="sentence-card__meta-icon">🎯</div>' +
+        '<div class="sentence-card__meta-text"><div class="sentence-card__meta-label">使用场合</div>' + s.occasion + '</div></div>';
+    }
+    if (s.tips) {
+      metaHtml += '<div class="sentence-card__meta-item">' +
+        '<div class="sentence-card__meta-icon">💡</div>' +
+        '<div class="sentence-card__meta-text"><div class="sentence-card__meta-label">小贴士</div>' + s.tips + '</div></div>';
+    }
+    var metaWrap = metaHtml ? '<div class="sentence-card__meta" id="meta-' + s.id + '">' + metaHtml + '</div>' : '';
+
+    // 变体例句
+    var vr = VARIATIONS[s.id] || [];
+    var vrHtml = '';
+    if (vr.length > 0) {
+      vrHtml = '<div class="sentence-card__variations" id="vr-' + s.id + '">' +
+        '<div class="sentence-card__variations-title">🔄 举一反三</div>' +
+        vr.map(function (v) {
+          return '<div class="sentence-card__variation">' +
+            '<span class="sentence-card__variation-thai">' + v.t + '</span>' +
+            '<span class="sentence-card__variation-cn">' + v.c + '</span></div>';
+        }).join('') +
+        '</div>';
+    }
+
     return '<div class="sentence-card">' +
       '<div class="sentence-card__thai">' + s.thai + '</div>' +
+      (s.roman ? '<div class="sentence-card__roman">' + s.roman + '</div>' : '') +
+      (s.zhuyin ? '<div class="sentence-card__zhuyin">近似发音：' + s.zhuyin + '</div>' : '') +
       '<div class="sentence-card__cn">' + s.cn + '</div>' +
+      bdHtml + metaWrap + vrHtml +
       '<div class="sentence-card__actions">' +
-      '<button class="sentence-card__play ' + playing + '" data-play="' + s.id + '" onclick="playAudio(\'' + s.id + '\')">' + (playing ? '⏸' : '▶') + '</button>' +
+      '<button class="sentence-card__play ' + playing + '" data-play="' + s.id + '" onclick="playAudio(\'' + s.id + '\')">' + playIcon + '</button>' +
       '<button class="sentence-card__fav ' + favActive + '" data-fav="' + s.id + '" onclick="toggleFav(\'' + s.id + '\')">' + favIcon + '</button>' +
       '<button class="sentence-card__expand" onclick="showLargeCard(\'' + s.id + '\')">🔍</button>' +
+      '<button class="sentence-card__toggle" onclick="toggleDetail(\'' + s.id + '\')">📖 详解</button>' +
       '</div></div>';
   }
 
@@ -652,10 +738,13 @@
     var turnsHtml = d.turns.map(function (turn, i) {
       var audioId = d.id + '-' + i;
       var playing = state.playingId === audioId ? 'playing' : '';
+      var romanHtml = turn.roman ? '<div style="font-size:12px;color:var(--purple);font-style:italic;margin-bottom:1px">' + turn.roman + '</div>' : '';
+      var zhuyinHtml = turn.zhuyin ? '<div style="font-size:11px;color:#e91e63;opacity:.8;margin-bottom:1px">近似：' + turn.zhuyin + '</div>' : '';
       return '<div class="dialogue-turn">' +
         '<div class="dialogue-turn__speaker">' + turn.s + '</div>' +
         '<div class="dialogue-turn__content">' +
         '<div class="dialogue-turn__thai">' + turn.t + '</div>' +
+        romanHtml + zhuyinHtml +
         '<div class="dialogue-turn__cn">' + turn.c + '</div>' +
         '</div>' +
         '<button class="dialogue-turn__play ' + playing + '" data-play="' + audioId + '" onclick="playTurn(\'' + d.id + '\',' + i + ')">' + (playing ? '⏸' : '▶') + '</button>' +
@@ -706,6 +795,7 @@
   window.playTurn = playTurn;
   window.playDialogueAll = playDialogueAll;
   window.toggleDialogue = toggleDialogue;
+  window.toggleDetail = toggleDetail;
 
   /* ===== 初始化 ===== */
   function initApp() {
