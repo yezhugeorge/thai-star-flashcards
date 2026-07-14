@@ -13,6 +13,7 @@
   var DIALOGUES = DATA.DIALOGUES || [];
   var BREAKDOWN = DATA.BREAKDOWN || {};
   var VARIATIONS = DATA.VARIATIONS || {};
+  var VOCAB = DATA.VOCAB || [];
 
   /* ===== Toast ===== */
   var toastEl = null, toastTimer = null;
@@ -108,6 +109,7 @@
     route: 'home',
     cat: null,
     sub: null,
+    contentTab: 'sentences',
     searchQ: '',
     favs: loadFavs(),
     playingId: null,
@@ -161,7 +163,7 @@
     return dir + id + '.mp3';
   }
 
-  function playAudio(id) {
+  function playAudio(id, ttsText) {
     if (state.playingId === id) { stopAudio(); return; }
     stopAudio();
     var a = new Audio();
@@ -169,16 +171,19 @@
     a.playbackRate = state.speed;
     a.onplay = function () { state.playingId = id; updatePlayBtns(id, true); };
     a.onended = function () { state.playingId = null; updatePlayBtns(id, false); };
-    a.onerror = function () { state.playingId = null; updatePlayBtns(id, false); playTTS(id); };
+    a.onerror = function () { state.playingId = null; updatePlayBtns(id, false); playTTS(id, ttsText); };
     currentAudio = a;
-    a.play().catch(function () { playTTS(id); });
+    a.play().catch(function () { playTTS(id, ttsText); });
   }
 
-  function playTTS(id) {
+  function playTTS(id, customText) {
     if (!('speechSynthesis' in window)) { showToast('当前浏览器不支持语音'); return; }
+    var text = customText || null;
     // 句子
-    var s = SENTENCES.find(function (x) { return x.id === id; });
-    var text = s ? s.thai : null;
+    if (!text) {
+      var s = SENTENCES.find(function (x) { return x.id === id; });
+      text = s ? s.thai : null;
+    }
     // 对话轮次
     if (!text) {
       var parts = id.split('-');
@@ -524,6 +529,7 @@
     state.route = 'category';
     state.cat = catId;
     state.sub = null;
+    state.contentTab = 'sentences';
     var cat = CATEGORIES.find(function (c) { return c.id === catId; });
     document.getElementById('search-bar').style.display = 'none';
     document.getElementById('back-btn').style.display = 'block';
@@ -538,11 +544,25 @@
     window.scrollTo(0, 0);
   }
 
+  function switchContentTab(tab) {
+    stopAudio();
+    state.contentTab = tab;
+    renderCategoryPage(state.cat);
+    window.scrollTo(0, 0);
+  }
+
+  function playVocab(vid) {
+    var v = VOCAB.find(function(x) { return x.id === vid; });
+    if (!v) return;
+    playAudio(vid, v.word);
+  }
+
   /* ===== 首页 ===== */
   function renderHome() {
     var content = document.getElementById('content');
     var totalS = SENTENCES.length;
     var totalD = DIALOGUES.length;
+    var totalV = VOCAB.length;
 
     var html =
       '<div class="home-hero">' +
@@ -550,6 +570,7 @@
       '<div class="home-hero__title">饭泰 FANTHA</div>' +
       '<div class="home-hero__desc">点一下就能听 · 追星泰语利器</div>' +
       '<div class="home-hero__stats">' +
+      '<div class="home-hero__stat"><div class="home-hero__stat-num">' + totalV + '</div><div class="home-hero__stat-label">核心单词</div></div>' +
       '<div class="home-hero__stat"><div class="home-hero__stat-num">' + totalS + '</div><div class="home-hero__stat-label">实用句子</div></div>' +
       '<div class="home-hero__stat"><div class="home-hero__stat-num">' + totalD + '</div><div class="home-hero__stat-label">对话场景</div></div>' +
       '<div class="home-hero__stat"><div class="home-hero__stat-num">6</div><div class="home-hero__stat-label">大模块</div></div>' +
@@ -577,7 +598,7 @@
           '<div class="cat-card__icon">' + cat.icon + '</div>' +
           '<div class="cat-card__name">' + cat.name + '</div>' +
           '<div class="cat-card__desc">' + cat.desc + '</div>' +
-          '<div class="cat-card__count">📝 ' + sc + '句 · 💬 ' + dc + '对话</div>' +
+          '<div class="cat-card__count">📚 ' + VOCAB.filter(function(v){return v.cat===cat.id;}).length + '词 · 📝 ' + sc + '句 · 💬 ' + dc + '对话</div>' +
           '</div>';
       });
 
@@ -621,35 +642,52 @@
     });
     html += '</div>';
 
-    // 句子
-    var sentences = SENTENCES.filter(function (s) { return s.cat === catId; });
-    if (state.sub) sentences = sentences.filter(function (s) { return s.sub === state.sub; });
+    // ===== 内容切换标签：单词 / 句子 / 对话 =====
+    var catVocab = VOCAB.filter(function(v) { return v.cat === catId; });
+    var catSentences = SENTENCES.filter(function (s) { return s.cat === catId; });
+    if (state.sub) catSentences = catSentences.filter(function (s) { return s.sub === state.sub; });
+    var catDialogues = DIALOGUES.filter(function (d) { return d.cat === catId; });
 
-    if (sentences.length > 0) {
-      var subName = '';
-      if (state.sub) {
-        var sn = subcats.find(function(s){return s.id===state.sub;});
-        subName = sn ? ' · ' + sn.name : '';
+    var tab = state.contentTab || 'sentences';
+    html += '<div class="content-tabs">';
+    html += '<button class="content-tab ' + (tab === 'vocab' ? 'active' : '') + '" onclick="switchContentTab(\'vocab\')">📚 单词<span class="content-tab__count">' + catVocab.length + '</span></button>';
+    html += '<button class="content-tab ' + (tab === 'sentences' ? 'active' : '') + '" onclick="switchContentTab(\'sentences\')">📝 句子<span class="content-tab__count">' + catSentences.length + '</span></button>';
+    html += '<button class="content-tab ' + (tab === 'dialogues' ? 'active' : '') + '" onclick="switchContentTab(\'dialogues\')">💬 对话<span class="content-tab__count">' + catDialogues.length + '</span></button>';
+    html += '</div>';
+
+    // 根据选中的tab渲染内容
+    if (tab === 'vocab') {
+      // 单词卡片
+      if (catVocab.length > 0) {
+        html += '<div class="vocab-grid">';
+        catVocab.forEach(function(v) {
+          html += renderVocabCard(v);
+        });
+        html += '</div>';
+      } else {
+        html += '<div class="fav-empty"><div class="fav-empty__icon">📚</div><p>暂无单词</p></div>';
       }
-      html += '<div class="section-header">📝 实用句子' + subName + ' (' + sentences.length + ')</div>';
-      html += sentences.map(renderSentenceCard).join('');
-    }
-
-    // 对话场景（全部模式下显示）
-    var dialogues = DIALOGUES.filter(function (d) { return d.cat === catId; });
-    if (dialogues.length > 0 && !state.sub) {
-      html += '<div class="section-header">💬 对话场景 (' + dialogues.length + ')</div>';
-      html += dialogues.map(renderDialogueCard).join('');
-    }
-
-    // 对话场景（子分类模式下也显示该分类的对话）
-    if (dialogues.length > 0 && state.sub) {
-      html += '<div class="section-header">💬 对话场景 (' + dialogues.length + ')</div>';
-      html += dialogues.map(renderDialogueCard).join('');
-    }
-
-    if (sentences.length === 0 && dialogues.length === 0) {
-      html += '<div class="fav-empty"><div class="fav-empty__icon">📝</div><p>该分类暂无内容</p></div>';
+    } else if (tab === 'sentences') {
+      // 句子卡片
+      if (catSentences.length > 0) {
+        var subName = '';
+        if (state.sub) {
+          var sn = subcats.find(function(s){return s.id===state.sub;});
+          subName = sn ? ' · ' + sn.name : '';
+        }
+        html += '<div class="section-header">📝 实用句子' + subName + ' (' + catSentences.length + ')</div>';
+        html += catSentences.map(renderSentenceCard).join('');
+      } else {
+        html += '<div class="fav-empty"><div class="fav-empty__icon">📝</div><p>暂无句子</p></div>';
+      }
+    } else if (tab === 'dialogues') {
+      // 对话卡片
+      if (catDialogues.length > 0) {
+        html += '<div class="section-header">💬 对话场景 (' + catDialogues.length + ')</div>';
+        html += catDialogues.map(renderDialogueCard).join('');
+      } else {
+        html += '<div class="fav-empty"><div class="fav-empty__icon">💬</div><p>暂无对话</p></div>';
+      }
     }
 
     content.innerHTML = html;
@@ -667,6 +705,21 @@
       'offline-pilgrim':'📍','offline-merch':'🛒','offline-wreath':'💐','offline-fanclub':'👥','offline-audition':'🏆','offline-emergency':'🚨'
     };
     return icons[subId] || '📌';
+  }
+
+  /* ===== 单词卡片 ===== */
+  function renderVocabCard(v) {
+    var playing = state.playingId === v.id ? 'playing' : '';
+    var posTag = v.pos ? '<span class="vocab-card__pos">' + v.pos + '</span>' : '';
+    var exHtml = v.ex_thai ? '<div class="vocab-card__example"><span class="vocab-card__example-label">例句:</span> ' + v.ex_thai + '<br>' + v.ex_cn + '</div>' : '';
+    return '<div class="vocab-card">' +
+      '<button class="vocab-card__play ' + playing + '" data-play="' + v.id + '" onclick="playVocab(\'' + v.id + '\')">' + (playing ? '⏸' : '▶') + '</button>' +
+      '<div class="vocab-card__word">' + v.word + '</div>' +
+      (v.roman ? '<div class="vocab-card__roman">' + v.roman + '</div>' : '') +
+      (v.zhuyin ? '<div class="vocab-card__zhuyin">' + v.zhuyin + '</div>' : '') +
+      '<div class="vocab-card__meaning">' + v.meaning + posTag + '</div>' +
+      exHtml +
+      '</div>';
   }
 
   /* ===== 句子卡片 ===== */
@@ -791,6 +844,8 @@
   window.closeLargeCard = closeLargeCard;
   window.goToCategory = goToCategory;
   window.selectSub = selectSub;
+  window.switchContentTab = switchContentTab;
+  window.playVocab = playVocab;
   window.quickSearch = quickSearch;
   window.playTurn = playTurn;
   window.playDialogueAll = playDialogueAll;

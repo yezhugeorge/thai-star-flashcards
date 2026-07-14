@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>饭泰 FANTHA - TTS试听</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #1a1a2e; color: #fff; padding: 20px; max-width: 800px; margin: 0 auto; }
+h1 { text-align: center; background: linear-gradient(135deg, #ff6b9d, #c44fe7); -webkit-background-clip: text; -webkit-text-fill-color: transparent; font-size: 28px; margin-bottom: 8px; }
+.subtitle { text-align: center; color: #aaa; font-size: 14px; margin-bottom: 24px; }
+.note { background: #2a2a4e; border-radius: 12px; padding: 16px; margin-bottom: 20px; font-size: 14px; line-height: 1.6; }
+.note strong { color: #ff6b9d; }
+.note code { background: #1a1a2e; padding: 2px 6px; border-radius: 4px; font-size: 13px; color: #c44fe7; }
+.test-card { background: #2a2a4e; border-radius: 16px; padding: 20px; margin-bottom: 16px; }
+.test-card__header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
+.test-card__id { font-size: 12px; color: #888; }
+.test-card__thai { font-size: 22px; font-weight: 600; margin-bottom: 4px; }
+.test-card__roman { font-size: 14px; color: #c44fe7; font-style: italic; margin-bottom: 2px; }
+.test-card__zhuyin { font-size: 13px; color: #ff6b9d; margin-bottom: 4px; }
+.test-card__cn { font-size: 15px; color: #aaa; }
+.audio-row { display: flex; gap: 12px; margin-top: 12px; align-items: center; }
+.audio-row label { font-size: 13px; min-width: 40px; }
+.audio-row audio { flex: 1; height: 36px; }
+.tag { font-size: 11px; padding: 2px 8px; border-radius: 10px; font-weight: 500; }
+.tag-female { background: rgba(255,107,157,0.2); color: #ff6b9d; }
+.tag-male { background: rgba(100,149,237,0.2); color: #6495ed; }
+.section-title { font-size: 16px; font-weight: 600; margin: 20px 0 12px; color: #ff6b9d; }
+</style>
+</head>
+<body>
+<h1>🐷 饭泰 FANTHA · TTS试听</h1>
+<p class="subtitle">确认音频是用<strong style="color:#ff6b9d">泰语原文</strong>生成的，不是罗马音</p>
+
+<div class="note">
+  <strong>⚠️ 验证要点：</strong><br>
+  1. 听到的应该是<strong>泰语发音</strong>，不是英语或中文<br>
+  2. 发音应该和罗马音（紫色斜体）大致对应<br>
+  3. 女声和男声应该音色不同但内容相同<br>
+  4. 如果听到的是字母拼写声（a-b-c）说明TTS用了错误的文本
+</div>
+
+<div id="tests"></div>
+
+<script>
+const samples = [
+  { id: "bl-cp-001",          thai: "พวกเขาน่ารักมาก",           roman: "puak khao na rak mak",      zhuyin: "普瓦考 那拉克 玛克",       cn: "他们好可爱",        hasMale: true },
+  { id: "gl-cp-001",          thai: "พี่สาวเท่มาก",               roman: "phi sao the mak",            zhuyin: "屁嫂 贴 玛克",              cn: "姐姐好飒",          hasMale: true },
+  { id: "star-praise-001",    thai: "หล่อมาก",                    roman: "lo mak",                     zhuyin: "劳 玛克",                   cn: "好帅",              hasMale: true },
+  { id: "concert-ticket-001", thai: "ซื้อตั๋วออนไลน์ที่ไหน",       roman: "sue tua onlai thi nai",      zhuyin: "素 杜阿 翁莱 提乃",         cn: "网上在哪买票",      hasMale: true },
+  { id: "social-twitter-001", thai: "รีโพสต์ด้วยนะ",               roman: "ri phot duay na",            zhuyin: "里 波 杜爱 哪",             cn: "请转发",            hasMale: true },
+  { id: "offline-pilgrim-001", thai: "ที่นี่ถ่ายหนังเรื่องอะไร",    roman: "thi ni thai nang rueang arai", zhuyin: "提尼 泰囊 软 阿莱",       cn: "这里拍了什么剧",    hasMale: false },
+  { id: "dlg-bl-01-0",        thai: "สวัสดีค่ะ ดีใจมากที่ได้เจอ", roman: "sawatdi kha di chai mak thi dai joe", zhuyin: "萨瓦迪卡 迪柴 玛克 提代杰", cn: "你好，很高兴见到你", hasMale: false },
+];
+
+const container = document.getElementById('tests');
+
+samples.forEach((s, i) => {
+  const card = document.createElement('div');
+  card.className = 'test-card';
+  
+  let audioHtml = '<div class="audio-row"><span class="tag tag-female">女声</span><audio controls preload="auto"><source src="audio/' + s.id + '.mp3" type="audio/mpeg"></audio></div>';
+  if (s.hasMale) {
+    audioHtml += '<div class="audio-row"><span class="tag tag-male">男声</span><audio controls preload="auto"><source src="audio/male/' + s.id + '.mp3" type="audio/mpeg"></audio></div>';
+  }
+  
+  card.innerHTML = `
+    <div class="test-card__header">
+      <span class="test-card__id">#${i+1} · ${s.id}</span>
+    </div>
+    <div class="test-card__thai">${s.thai}</div>
+    <div class="test-card__roman">${s.roman}</div>
+    <div class="test-card__zhuyin">${s.zhuyin}</div>
+    <div class="test-card__cn">💬 ${s.cn}</div>
+    ${audioHtml}
+  `;
+  container.appendChild(card);
+});
+</script>
+</body>
+</html>
