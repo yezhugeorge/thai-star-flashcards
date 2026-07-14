@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+  <title>活人泰语点读卡 · 追星专版</title>
+  <link rel="stylesheet" href="css/styles.css">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+</head>
+<body>
+
+  <!-- ===== 激活码界面 ===== -->
+  <div class="activation-overlay" id="activation-overlay">
+    <div class="activation-box">
+      <div class="activation-box__icon">⭐</div>
+      <h1 class="activation-box__title">活人泰语点读卡</h1>
+      <p class="activation-box__subtitle">追星专版 · 点一下就能听</p>
+      <input type="text" class="activation-box__input" id="activation-input"
+        placeholder="THAI-XXXX-XXXX-XXXX"
+        autocomplete="off" autocapitalize="characters" spellcheck="false"
+        maxlength="19">
+      <button class="activation-box__btn" onclick="submitActivation()">激 活</button>
+      <p class="activation-box__hint" id="activation-hint">请输入激活码解锁全部内容</p>
+    </div>
+  </div>
+
+  <!-- ===== 主应用 ===== -->
+  <div id="app" style="display:none">
+
+    <!-- 顶部导航 -->
+    <header class="topbar">
+      <button class="topbar__back" id="back-btn" onclick="goBack()" style="display:none">←</button>
+      <div class="topbar__title" id="page-title">活人泰语 · 追星专版</div>
+      <div class="topbar__actions">
+        <button class="topbar__btn" onclick="openSearch()" title="搜索">🔍</button>
+        <button class="topbar__btn" onclick="openFavorites()" title="收藏">⭐<span class="badge" id="fav-badge" style="display:none">0</span></button>
+        <button class="topbar__btn" onclick="openSettings()" title="设置">⚙️</button>
+      </div>
+    </header>
+
+    <!-- 搜索栏（浮动） -->
+    <div class="search-bar" id="search-bar" style="display:none">
+      <input type="text" class="search-bar__input" id="search-input"
+        placeholder="搜索泰语 / 中文..." autocomplete="off">
+      <button class="search-bar__close" onclick="closeSearch()">✕</button>
+    </div>
+
+    <!-- 内容区 -->
+    <main class="content" id="content"></main>
+
+    <!-- 底部性别切换 -->
+    <div class="gender-bar" id="gender-bar">
+      <button class="gender-bar__btn active" data-gender="female" onclick="setVoiceGender('female')">👩 女声</button>
+      <button class="gender-bar__btn" data-gender="male" onclick="setVoiceGender('male')">👨 男声</button>
+    </div>
+  </div>
+
+  <!-- ===== 设置弹窗 ===== -->
+  <div class="modal-overlay" id="settings-modal" style="display:none" onclick="closeSettings(event)">
+    <div class="modal">
+      <div class="modal__header">
+        <h2>设置</h2>
+        <button class="modal__close" onclick="closeSettings()">✕</button>
+      </div>
+      <div class="modal__body">
+        <div class="setting-row">
+          <label>播放速度</label>
+          <div class="speed-tabs">
+            <button class="speed-tab" data-speed="0.5" onclick="setPlaybackSpeed(0.5)">0.5x</button>
+            <button class="speed-tab" data-speed="0.75" onclick="setPlaybackSpeed(0.75)">0.75x</button>
+            <button class="speed-tab active" data-speed="1" onclick="setPlaybackSpeed(1)">1x</button>
+          </div>
+        </div>
+        <div class="setting-row">
+          <label>发音性别</label>
+          <div class="speed-tabs">
+            <button class="speed-tab active" data-gender="female" onclick="setVoiceGender('female')">👩 女声</button>
+            <button class="speed-tab" data-gender="male" onclick="setVoiceGender('male')">👨 男声</button>
+          </div>
+        </div>
+        <div class="setting-info">
+          <p>📌 激活后浏览器自动记住，下次打开不用再输</p>
+          <p>💡 如需清除激活，清除浏览器缓存即可</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== 大字卡 ===== -->
+  <div class="largecard-overlay" id="largecard-overlay" style="display:none" onclick="closeLargeCardOnOverlay(event)">
+    <div class="largecard" id="largecard-content"></div>
+  </div>
+
+  <!-- ===== 对话播放器 ===== -->
+  <div class="dialogue-player" id="dialogue-player" style="display:none">
+    <div class="dialogue-player__bar">
+      <span id="dialogue-player-text"></span>
+      <button onclick="stopDialoguePlay()">⏹</button>
+    </div>
+  </div>
+
+  <script src="js/data.js"></script>
+  <script src="js/codes.js"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>
